@@ -122,14 +122,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     /**
      * Generates a heatmap on the canvas based on the frequencyMap.
-     * The higher the frequency, the "hotter" (e.g. red) the color.
      */
     function generateHeatmap(map: Map<string, number>) {
         if (!ctx) return;
-
+    
         // Clear the canvas
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-
+    
         // Find the maximum frequency
         let maxFreq = 0;
         for (const [, count] of map) {
@@ -137,27 +136,33 @@ document.addEventListener('DOMContentLoaded', () => {
                 maxFreq = count;
             }
         }
-
+    
+        // Fixed hue for red and constant saturation
+        const fixedHue = 0; // Red
+        const saturation = 100;
+    
         // Draw each key as a circle with color based on frequency
         KEY_LAYOUT.forEach((layout) => {
             const freq = map.get(layout.key) || 0;
             // Calculate a ratio from 0.0 to 1.0
             const ratio = maxFreq === 0 ? 0 : freq / maxFreq;
-
-            // Color gradient: from blue (low freq) to red (high freq)
-            const hue = 240 - Math.floor(240 * ratio);
-            const color = `hsl(${hue}, 100%, 50%)`;
-
-            // Draw the circle
+            
+            // Vary lightness: low frequency -> higher lightness (lighter color),
+            // high frequency -> lower lightness (darker color)
+            // For example, lightness from 90% (low freq) to 30% (high freq)
+            const lightness = 90 - Math.floor(60 * ratio);
+            const color = `hsl(${fixedHue}, ${saturation}%, ${lightness}%)`;
+    
+            // Draw the circle representing the key
             const radius = 20;
             ctx.beginPath();
             ctx.arc(layout.x, layout.y, radius, 0, 2 * Math.PI);
             ctx.fillStyle = color;
             ctx.fill();
-
-            // Draw the key label
-            ctx.fillStyle = '#ffffff';
-            ctx.font = '12px sans-serif';
+    
+            // Draw the key label on top of the circle
+            ctx.fillStyle = '#777777';
+            ctx.font = '20px sans-serif';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillText(layout.key, layout.x, layout.y);
