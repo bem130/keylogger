@@ -1,8 +1,9 @@
 // app.ts
-// This TypeScript code reads a key log file, performs frequency analysis,
-// and generates a heatmap on an HTML canvas based on key frequencies.
+// This TypeScript code loads multiple keyboard layouts from hardcoded JSON files using fetch,
+// performs frequency analysis on a key log, and generates heatmaps on an HTML canvas.
+// It includes a mapping to handle special keys whose logged tokens differ from their printed representation,
+// and displays multiple layouts side by side.
 
-// DOMContentLoaded event ensures the DOM is fully loaded before executing the script.
 document.addEventListener('DOMContentLoaded', () => {
     const fileInput = document.getElementById('fileInput') as HTMLInputElement;
     const analyzeButton = document.getElementById('analyzeButton') as HTMLButtonElement;
@@ -11,76 +12,48 @@ document.addEventListener('DOMContentLoaded', () => {
     const canvas = document.getElementById('heatmapCanvas') as HTMLCanvasElement;
     const ctx = canvas.getContext('2d');
 
-    // We'll store the analysis results here for generating the heatmap.
+    // Array to store multiple layouts along with their name.
+    let layouts: Array<{ name: string, keys: { key: string, x: number, y: number }[] }> = [];
+    // Frequency map for key events from log analysis.
     let frequencyMap: Map<string, number> = new Map();
 
+    // Mapping for special keys: layout printed key -> possible tokens in the log.
+    const keyMapping: { [key: string]: string[] } = {
+        "tab": ["<Tab>", "tab"],
+        "capslock": ["<CapsLock>", "capslock"],
+        "全角/半角": ["<F>", "<H>"],
+        "shift": ["<ShiftLeft>", "<ShiftRight>", "shift"],
+        "ctrl": ["<ControlLeft>", "<ControlRight>", "ctrl"],
+        "win": ["<MetaLeft>", "<MetaRight>", "win"],
+        "alt": ["<AltLeft>", "<AltRight>", "alt"],
+        "esc": ["<Escape>", "esc"],
+        "space": ["<Space>", "space", " "],
+        "backspace": ["<Backspace>", "backspace"],
+        "delete": ["<Delete>", "delete"],
+        "enter": ["<Enter>", "<Return>", "enter"],
+        "app": ["<App>", "app"],
+        // Add more mappings if needed.
+    };
+
     /**
-     * Keyboard layout data based on your custom arrangement.
-     * 
-     * Row 1: 1 2 3 4 5 6 \ 7 8 9 0 - ^
-     * Row 2: q o e , . : w d k s t [
-     * Row 3: a u i f z ; r j h l y ]
-     * Row 4: / x c v \ b n m g p @
-     * 
-     * The 'x' and 'y' coordinates are approximate. Feel free to adjust them.
+     * Fetches a keyboard layout JSON file and adds it to the layouts array.
+     * @param name - The name identifier of the layout (used in the file path and for display).
      */
-    const KEY_LAYOUT = [
-        // Row 1 (13 keys)
-        { key: '1', x:  50, y: 50 },
-        { key: '2', x: 100, y: 50 },
-        { key: '3', x: 150, y: 50 },
-        { key: '4', x: 200, y: 50 },
-        { key: '5', x: 250, y: 50 },
-        { key: '6', x: 300, y: 50 },
-        { key: '\\', x: 350, y: 50 },
-        { key: '7', x: 400, y: 50 },
-        { key: '8', x: 450, y: 50 },
-        { key: '9', x: 500, y: 50 },
-        { key: '0', x: 550, y: 50 },
-        { key: '-', x: 600, y: 50 },
-        { key: '^', x: 650, y: 50 },
-
-        // Row 2 (12 keys)
-        { key: 'q', x:  60, y: 100 },
-        { key: 'o', x: 110, y: 100 },
-        { key: 'e', x: 160, y: 100 },
-        { key: ',', x: 210, y: 100 },
-        { key: '.', x: 260, y: 100 },
-        { key: ':', x: 310, y: 100 },
-        { key: 'w', x: 360, y: 100 },
-        { key: 'd', x: 410, y: 100 },
-        { key: 'k', x: 460, y: 100 },
-        { key: 's', x: 510, y: 100 },
-        { key: 't', x: 560, y: 100 },
-        { key: '[', x: 610, y: 100 },
-
-        // Row 3 (12 keys)
-        { key: 'a', x:  60, y: 150 },
-        { key: 'u', x: 110, y: 150 },
-        { key: 'i', x: 160, y: 150 },
-        { key: 'f', x: 210, y: 150 },
-        { key: 'z', x: 260, y: 150 },
-        { key: ';', x: 310, y: 150 },
-        { key: 'r', x: 360, y: 150 },
-        { key: 'j', x: 410, y: 150 },
-        { key: 'h', x: 460, y: 150 },
-        { key: 'l', x: 510, y: 150 },
-        { key: 'y', x: 560, y: 150 },
-        { key: ']', x: 610, y: 150 },
-
-        // Row 4 (11 keys)
-        { key: '/', x:  70, y: 200 },
-        { key: 'x', x: 120, y: 200 },
-        { key: 'c', x: 170, y: 200 },
-        { key: 'v', x: 220, y: 200 },
-        { key: '\\', x: 270, y: 200 }, // Another backslash
-        { key: 'b', x: 320, y: 200 },
-        { key: 'n', x: 370, y: 200 },
-        { key: 'm', x: 420, y: 200 },
-        { key: 'g', x: 470, y: 200 },
-        { key: 'p', x: 520, y: 200 },
-        { key: '@', x: 570, y: 200 },
-    ];
+    function loadLayout(name: string) {
+        // Hardcoded JSON file path. For example, "layouts/bem.json" or "layouts/qwerty.json".
+        fetch(`layouts/${name}.json`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then((data: { key: string, x: number, y: number }[]) => {
+                layouts.push({ name, keys: data });
+                console.log(`Layout ${name} loaded:`, data);
+            })
+            .catch(error => console.error(`Error loading layout JSON for ${name}:`, error));
+    }
 
     /**
      * Parses the key log text into individual tokens.
@@ -88,7 +61,6 @@ document.addEventListener('DOMContentLoaded', () => {
      * @returns An array of key event tokens.
      */
     function parseLog(logText: string): string[] {
-        // Split by any whitespace (spaces, newlines) and filter out empty tokens.
         return logText.split(/\s+/).filter(token => token.length > 0);
     }
 
@@ -106,70 +78,93 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /**
-     * Displays the frequency analysis results in text form.
-     * For a bilingual approach, replicate or append the output in Japanese if desired.
+     * Retrieves the frequency count for a given printed key by checking its mapped tokens.
+     * @param printedKey - The key as printed in the layout.
+     * @param freqMap - The frequency map from the log analysis.
+     * @returns Frequency count for the key.
+     */
+    function getKeyFrequency(printedKey: string, freqMap: Map<string, number>): number {
+        const lowerKey = printedKey.toLowerCase();
+        // Check if a mapping exists for special keys.
+        if (keyMapping[lowerKey]) {
+            for (const token of keyMapping[lowerKey]) {
+                if (freqMap.has(token)) {
+                    return freqMap.get(token)!;
+                }
+            }
+        }
+        // Fallback to directly checking the printed key.
+        return freqMap.get(printedKey) || 0;
+    }
+
+    /**
+     * Displays the frequency analysis results.
      */
     function displayAnalysis(map: Map<string, number>) {
-        // Sort entries in descending order by frequency
         const entries = Array.from(map.entries()).sort((a, b) => b[1] - a[1]);
-        let text = 'Key Event Frequency Analysis:\n';
-        text += '-------------------------------\n';
-        for (const [key, count] of entries) {
+        let text = 'Key Event Frequency Analysis:\n-------------------------------\n';
+        entries.forEach(([key, count]) => {
             text += `${key}: ${count}\n`;
-        }
+        });
         outputDiv.textContent = text;
     }
 
     /**
-     * Generates a heatmap on the canvas based on the frequencyMap.
+     * Generates heatmaps on the canvas based on the loaded layouts and frequency map.
+     * Each layout is rendered with a horizontal offset to display them side by side.
      */
-    function generateHeatmap(map: Map<string, number>) {
+    function generateHeatmap(layouts: Array<{ name: string, keys: { key: string, x: number, y: number }[] }>, freqMap: Map<string, number>) {
         if (!ctx) return;
-    
-        // Clear the canvas
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
-        // Find the maximum frequency
+
+        // Determine the maximum frequency for color scaling across all keys.
         let maxFreq = 0;
-        for (const [, count] of map) {
-            if (count > maxFreq) {
-                maxFreq = count;
-            }
-        }
-    
-        // Fixed hue for red and constant saturation
+        freqMap.forEach(count => {
+            if (count > maxFreq) maxFreq = count;
+        });
+
         const fixedHue = 0; // Red
         const saturation = 100;
-    
-        // Draw each key as a circle with color based on frequency
-        KEY_LAYOUT.forEach((layout) => {
-            const freq = map.get(layout.key) || 0;
-            // Calculate a ratio from 0.0 to 1.0
-            const ratio = maxFreq === 0 ? 0 : freq / maxFreq;
-            
-            // Vary lightness: low frequency -> higher lightness (lighter color),
-            // high frequency -> lower lightness (darker color)
-            // For example, lightness from 90% (low freq) to 30% (high freq)
-            const lightness = 90 - Math.floor(60 * ratio);
-            const color = `hsl(${fixedHue}, ${saturation}%, ${lightness}%)`;
-    
-            // Draw the circle representing the key
-            const radius = 20;
-            ctx.beginPath();
-            ctx.arc(layout.x, layout.y, radius, 0, 2 * Math.PI);
-            ctx.fillStyle = color;
-            ctx.fill();
-    
-            // Draw the key label on top of the circle
-            ctx.fillStyle = '#777777';
-            ctx.font = '20px sans-serif';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(layout.key, layout.x, layout.y);
+        const radius = 20;
+        const layoutSpacing = 300; // Horizontal space between layouts
+
+        layouts.forEach((layoutObj, index) => {
+            const offsetY = index * layoutSpacing;
+            // Optionally, draw layout name above its keys.
+            if (ctx) {
+                ctx.fillStyle = '#000000';
+                ctx.font = '16px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(layoutObj.name.toUpperCase(), 150, 30+offsetY);
+            }
+            layoutObj.keys.forEach(item => {
+                const freq = getKeyFrequency(item.key, freqMap);
+                const ratio = maxFreq === 0 ? 0 : freq / maxFreq;
+                // Lightness scales from 90% (low frequency) to 30% (high frequency)
+                const lightness = 90 - Math.floor(60 * ratio);
+                const color = `hsl(${fixedHue}, ${saturation}%, ${lightness}%)`;
+
+                // Draw the key as a circle with horizontal offset
+                ctx.beginPath();
+                ctx.arc(item.x, item.y+offsetY, radius, 0, 2 * Math.PI);
+                ctx.fillStyle = color;
+                ctx.fill();
+
+                // Draw the key label
+                ctx.fillStyle = '#777777';
+                ctx.font = '20px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(item.key, item.x, item.y+offsetY);
+            });
         });
     }
 
-    // Button event: Analyze the log file
+    // Load multiple layouts when the page loads.
+    loadLayout("bem");
+    loadLayout("qwerty");
+
+    // Event listener for log analysis button.
     analyzeButton.addEventListener('click', () => {
         if (fileInput.files && fileInput.files[0]) {
             const file = fileInput.files[0];
@@ -181,17 +176,20 @@ document.addEventListener('DOMContentLoaded', () => {
             };
             reader.readAsText(file);
         } else {
-            outputDiv.textContent = 'Please select a file to analyze.\nファイルを選択してください。';
+            outputDiv.textContent = 'Please select a log file to analyze.\nファイルを選択してください。';
         }
     });
 
-    // Button event: Generate the heatmap
+    // Event listener for generating heatmap button.
     heatmapButton.addEventListener('click', () => {
         if (frequencyMap.size === 0) {
-            outputDiv.textContent = 'No data to display. Please analyze a log file first.\n' +
-                                    'データがありません。先にファイルを解析してください。';
+            outputDiv.textContent = 'No log data available. Please analyze a log file first.\nデータがありません。先にファイルを解析してください。';
             return;
         }
-        generateHeatmap(frequencyMap);
+        if (layouts.length === 0) {
+            outputDiv.textContent = 'Layouts not loaded. Please check your layout JSON files.\nレイアウトが読み込まれていません。JSONファイルを確認してください。';
+            return;
+        }
+        generateHeatmap(layouts, frequencyMap);
     });
 });
