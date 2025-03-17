@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Keyboard Heatmap Analysis</title>
+    <style>
+        /* Dark theme */
+        body {
+            background-color: #121212;
+            color: #ffffff;
+            font-family: sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        input, button {
+            background-color: #333333;
+            color: #ffffff;
+            border: none;
+            padding: 10px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #444444;
+        }
+        .output {
+            white-space: pre-wrap;
+            background-color: #1e1e1e;
+            padding: 10px;
+            margin-top: 20px;
+            border-radius: 5px;
+        }
+        #heatmapCanvas {
+            background-color: #2f2f2f;
+            display: block;
+            margin-top: 20px;
+            border: 1px solid #555;
+        }
+    </style>
+</head>
+<body>
+    <h1>Keyboard Heatmap Analysis</h1>
+    <p>Select the key log file to analyze / キーログファイルを選択してください:</p>
+    <input type="file" id="fileInput" accept=".txt"/>
+    <button id="analyzeButton">Analyze Log</button>
+    <button id="heatmapButton">Generate Heatmap</button>
+    <!-- Canvas for the heatmap -->
+    <canvas id="heatmapCanvas" width="800" height="300"></canvas>
+
+    <div id="output" class="output"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+{
+    "compilerOptions": {
+        "target": "ES6",                        // Target ECMAScript 6 for output
+        "module": "ES6",                        // Use ES6 module system
+        "strict": true,                         // Enable strict type-checking options
+        "esModuleInterop": true,                // Enable compatibility with CommonJS modules
+        "forceConsistentCasingInFileNames": true, // Ensure file name casing consistency
+        "skipLibCheck": true,                   // Skip type checking of declaration files
+        "outDir": "./"                      // Output directory for compiled JavaScript files
+    },
+    "include": ["**/*.ts"],                     // Include all TypeScript files in the project
+    "exclude": ["node_modules"]                 // Exclude node_modules directory
+}

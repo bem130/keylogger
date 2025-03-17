@@ -21,8 +21,8 @@ lazy_static! {
 // 必要に応じてこの値（nミリ秒）を変更してください.
 const THRESHOLD_MILLI_SECS: u64 = 500;
 
-// 1分ごとのファイル書き込み間隔を定義します.
-const WRITE_INTERVAL_SECS: u64 = 10;
+// ファイル書き込み間隔を定義します.
+const WRITE_INTERVAL_SECS: u64 = 60;
 
 /// キーイベントを処理するためのコールバック関数です.
 fn callback(event: Event) {
