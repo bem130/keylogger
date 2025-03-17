@@ -15,7 +15,7 @@ const THRESHOLD_MILLI_SECS: u64 = 500; // 必要に応じてこの値（n秒）�
 /// キーイベントを処理するためのコールバック関数です.
 fn callback(event: Event) {
     // イベントがキー押下イベントかどうかチェックします.
-    if let EventType::KeyPress(_) = event.event_type {
+    if let EventType::KeyPress(key) = event.event_type {
         let now = Instant::now();
         let mut last_event = LAST_KEY_EVENT.lock().unwrap();
         if let Some(previous) = *last_event {
@@ -31,8 +31,25 @@ fn callback(event: Event) {
         }
         // 前回のキー押下時刻を更新します.
         *last_event = Some(now);
-        // 押されたキーの名前（またはデフォルト値）を表示します.
-        println!("{:?}", event.name.unwrap_or_default());
+        // 記録するキーの名前を決定する
+        // それぞれ良い感じにやる
+        let key_name = if let Some(name) = event.name {
+                if format!("{:?}",&name).len()==3 {
+                    match name.as_str() {
+                        " " => "<Space>".to_string(),
+                        _ => name,
+                    }
+                }
+                else { format!("<{:?}>",key) }
+            } else {
+                match format!("<{:?}>",key).as_str() {
+                    "<Unknown(244)>" => "<F>".to_string(),
+                    "<Unknown(243)>" => "<H>".to_string(),
+                    "<Unknown(93)>" => "<App>".to_string(),
+                    _ => format!("<{:?}>",key),
+                }
+            };
+        println!("{:?}",key_name);
     }
 }
 
