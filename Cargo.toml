@@ -4,4 +4,5 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-rdev = "0.5.0"
+rdev = "0.5.0"         # Global key event listening
+lazy_static = "1.4"     # For creating global static variables safely
